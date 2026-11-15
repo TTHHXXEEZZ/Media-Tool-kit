@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Toolkit</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    {% raw %}
+    <div id="app">
+        <v-app>
+            <!-- เมนูด้านซ้าย -->
+            <v-navigation-drawer v-model="drawerLeft" width="280" class="border-e">
+                <div class="pa-6 d-flex align-center">
+                    <v-avatar color="emerald-lighten-5" rounded="lg" size="48" class="mr-4">
+                        <v-icon color="#10B981" size="28">mdi-leaf-circle</v-icon>
+                    </v-avatar>
+                    <div>
+                        <div class="text-h6 font-weight-bold" style="color: #0F172A;">Media Toolkit</div>
+                        <div class="text-caption text-emerald">Open Source</div>
+                    </div>
+                </div>
+                <v-divider class="mb-4"></v-divider>
+
+                <v-list nav class="pa-4">
+                    <v-list-subheader class="font-weight-bold text-uppercase mb-2 text-caption text-grey">Tools</v-list-subheader>
+                    <v-list-item @click="switchTab('convert')" :active="activeTab === 'convert'" color="primary" rounded="lg" prepend-icon="mdi-image-sync" title="Converter" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('basic')" :active="activeTab === 'basic'" color="orange" rounded="lg" prepend-icon="mdi-brush" title="Basic Editor" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('frames')" :active="activeTab === 'frames'" color="teal" rounded="lg" prepend-icon="mdi-movie-open-outline" title="Video Frames" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('download')" :active="activeTab === 'download'" color="error" rounded="lg" prepend-icon="mdi-cloud-download" title="Downloader" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('editor')" :active="activeTab === 'editor'" color="purple" rounded="lg" prepend-icon="mdi-auto-fix" title="AI Studio" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('compress')" :active="activeTab === 'compress'" color="amber" rounded="lg" prepend-icon="mdi-zip-box" title="Compressor" class="mb-2 py-3"></v-list-item>
+                    <v-list-item @click="switchTab('audio')" :active="activeTab === 'audio'" color="indigo" rounded="lg" prepend-icon="mdi-waveform" title="Audio Extractor" class="mb-2 py-3"></v-list-item>
+                </v-list>
+            </v-navigation-drawer>
+
+            <v-main>
+                <v-container fluid class="pa-6 pa-md-10 h-100">
+                    <div class="d-flex align-center justify-space-between mb-6">
+                        <div class="d-flex align-center">
+                            <v-btn icon variant="text" @click="drawerLeft = !drawerLeft" class="mr-2 hidden-lg-and-up"><v-icon>mdi-menu</v-icon></v-btn>
+                            <h1 class="text-h4 font-weight-bold text-blue-grey-darken-3">{{ getTitle(activeTab) }}</h1>
+                        </div>
+                    </div>
+
+                    <v-card class="tool-card">
+                        <div class="scroll-container">
+                        <v-window v-model="activeTab" transition="fade-transition">
+
+                            <!-- แปลงไฟล์ -->
+                            <v-window-item value="convert">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-6"><v-icon size="64" color="primary" class="mb-2">mdi-image-sync</v-icon><h3 class="text-h6 font-weight-bold">Universal Converter</h3></div>
+                                    <div class="input-spacer"><v-file-input v-model="files" label="Select File" variant="outlined" show-size accept=".png,.jpg,.jpeg,.webp,.gif,.ico,.mp4,.mkv,.avi,.mov" color="primary" bg-color="white" prepend-icon="" prepend-inner-icon="mdi-file" @update:model-value="handlePreview"></v-file-input></div>
+                                    <div v-if="previewUrl" class="preview-box"><img v-if="previewType === 'image'" :src="previewUrl" style="max-height:200px;"><video v-else :src="previewUrl" controls style="max-height:200px;"></video></div>
+                                    <div class="input-spacer"><v-select v-model="convertFormat" :items="['PNG', 'JPG', 'WEBP', 'GIF', 'ICO']" label="Target Format" variant="outlined" color="primary" bg-color="white" prepend-inner-icon="mdi-format-paint"></v-select></div>
+                                    <v-btn block class="action-btn mt-4" color="primary" flat size="x-large" @click="upload('convert', {format: convertFormat})" :loading="loading" :disabled="!files || !files.length">Convert Now</v-btn>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- แต่งรูปพื้นฐาน -->
+                            <v-window-item value="basic">
+                                <v-container fluid style="max-width: 1200px;">
+                                    <div class="text-center mb-4"><v-icon size="48" color="orange" class="mb-2">mdi-brush</v-icon><h3 class="text-h6 font-weight-bold">Basic Editor</h3></div>
+
+                                    <v-file-input v-if="!files" v-model="files" label="Select Image to Edit" variant="outlined" show-size accept=".png,.jpg,.jpeg,.webp" color="orange" bg-color="white" prepend-icon="" prepend-inner-icon="mdi-image" @update:model-value="initCanvas"></v-file-input>
+
+                                    <div v-show="files" class="editor-layout">
+                                        <div class="editor-canvas-area">
+                                            <canvas ref="paintCanvas"
+                                                @mousedown="startPainting"
+                                                @mouseup="stopPainting"
+                                                @mousemove="draw"
+                                                @mouseleave="stopPainting"
+                                                v-show="!isCropping"></canvas>
+                                            <img ref="cropImage" id="cropImage" v-show="isCropping" class="cropper-img">
+                                        </div>
+
+                                        <div class="editor-tools">
+                                            <div class="text-subtitle-2 font-weight-bold mb-2">Actions</div>
+                                            <v-btn-group variant="outlined" divided density="compact" class="mb-4 w-100">
+                                                <v-btn @click="rotateImg(-90)" icon="mdi-rotate-left" color="grey-darken-2" title="Rotate Left"></v-btn>
+                                                <v-btn @click="rotateImg(90)" icon="mdi-rotate-right" color="grey-darken-2" title="Rotate Right"></v-btn>
+                                                <v-btn @click="flipImg('h')" icon="mdi-flip-horizontal" color="grey-darken-2" title="Flip Horizontal"></v-btn>
+                                                <v-btn @click="flipImg('v')" icon="mdi-flip-vertical" color="grey-darken-2" title="Flip Vertical"></v-btn>
+                                            </v-btn-group>
+
+                                            <v-btn @click="toggleCropMode" :loading="editorLoading" :color="isCropping ? 'success' : 'grey-darken-1'" variant="tonal" block class="mb-4">
+                                                <v-icon start>{{ isCropping ? 'mdi-check' : 'mdi-crop' }}</v-icon> {{ isCropping ? 'Apply Crop' : 'Crop Mode' }}
+                                            </v-btn>
+
+                                            <v-divider class="mb-4"></v-divider>
+                                            <div class="text-subtitle-2 font-weight-bold mb-2">Paint (Draw)</div>
+                                            <div class="d-flex justify-space-between mb-4 px-2">
+                                                <div class="color-dot" :class="{active: paintColor==='#EF4444'}" style="background:#EF4444" @click="paintColor='#EF4444'"></div>
+                                                <div class="color-dot" :class="{active: paintColor==='#10B981'}" style="background:#10B981" @click="paintColor='#10B981'"></div>
+                                                <div class="color-dot" :class="{active: paintColor==='#3B82F6'}" style="background:#3B82F6" @click="paintColor='#3B82F6'"></div>
+                                                <div class="color-dot" :class="{active: paintColor==='#000000'}" style="background:#000000" @click="paintColor='#000000'"></div>
+                                                <v-btn size="small" icon="mdi-eraser" :color="isErasing ? 'orange' : 'grey'" variant="text" @click="isErasing = !isErasing" title="Eraser"></v-btn>
+                                            </div>
+                                            <v-slider v-model="brushSize" min="1" max="20" step="1" label="Size" density="compact" hide-details></v-slider>
+
+                                            <v-divider class="my-4"></v-divider>
+                                            <div class="text-subtitle-2 font-weight-bold mb-2">Text</div>
+                                            <v-text-field v-model="watermarkText" label="Add Text" variant="outlined" density="compact" hide-details append-inner-icon="mdi-send" @click:append-inner="addTextToCanvas"></v-text-field>
+
+                                            <v-spacer></v-spacer>
+                                            <v-btn block class="action-btn mt-4 text-white" color="orange" flat @click="saveCanvas" :loading="loading">Save &amp; Download</v-btn>
+                                            <v-btn block variant="text" color="grey" class="mt-2" @click="resetPreview">Reset All</v-btn>
+                                        </div>
+                                    </div>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- แตกเฟรมวิดีโอ -->
+                            <v-window-item value="frames">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-6"><v-icon size="64" color="teal" class="mb-2">mdi-movie-open-outline</v-icon><h3 class="text-h6 font-weight-bold">Frame Extractor</h3></div>
+                                    <div class="input-spacer"><v-file-input v-model="files" label="Select Video" variant="outlined" show-size accept=".mp4,.mkv,.avi,.mov" color="teal" bg-color="white" prepend-icon="" prepend-inner-icon="mdi-video" @update:model-value="handlePreview"></v-file-input></div>
+                                    <div v-if="previewUrl" class="preview-box"><video :src="previewUrl" controls style="max-height:200px;"></video></div>
+                                    <v-btn block class="action-btn mt-4 text-white" color="teal" flat size="x-large" @click="upload('convert', {format: 'FRAME-ZIP'})" :loading="loading" :disabled="!files || !files.length">Extract to ZIP</v-btn>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- ดาวน์โหลดวิดีโอ -->
+                            <v-window-item value="download">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-8"><v-icon size="72" color="error" class="mb-4">mdi-web</v-icon><h3 class="text-h6 font-weight-bold">Universal Video Downloader</h3></div>
+                                    <div class="input-spacer"><v-text-field v-model="videoUrl" label="Paste Video URL" variant="outlined" color="error" placeholder="https://..." clearable bg-color="white" prepend-inner-icon="mdi-link" @update:model-value="debounceFetchInfo"></v-text-field></div>
+                                    <div v-if="videoInfo.title" class="video-info-card"><v-img :src="videoInfo.thumbnail" width="120" height="80" cover class="rounded-lg bg-black"></v-img><div><div class="text-subtitle-2 font-weight-bold">{{ videoInfo.title }}</div><div class="text-caption text-grey">{{ videoInfo.duration }}</div></div></div>
+                                    <div class="input-spacer"><v-select v-model="downloadQuality" :items="qualityOptions" item-title="text" item-value="value" label="Quality" variant="outlined" color="error" bg-color="white" prepend-inner-icon="mdi-quality-high" :disabled="!videoInfo.title"></v-select></div>
+                                    <v-btn block class="action-btn" color="error" flat size="x-large" @click="downloadVideo" :loading="loading" :disabled="!videoInfo.title && !videoUrl">Download</v-btn>
+
+                                    <div class="mt-10 text-center">
+                                        <p class="text-caption text-grey mb-4 font-weight-medium">SUPPORTED PLATFORMS</p>
+                                        <div class="d-flex justify-center gap-6">
+                                            <v-icon color="red" size="32" class="mx-2 platform-icon" title="YouTube">mdi-youtube</v-icon>
+                                            <v-icon color="blue-darken-2" size="32" class="mx-2 platform-icon" title="Facebook">mdi-facebook</v-icon>
+                                            <v-icon color="black" size="32" class="mx-2 platform-icon" title="TikTok">mdi-music-note</v-icon>
+                                            <v-icon color="pink" size="32" class="mx-2 platform-icon" title="Instagram">mdi-instagram</v-icon>
+                                            <v-icon color="light-blue" size="32" class="mx-2 platform-icon" title="Twitter">mdi-twitter</v-icon>
+                                        </div>
+                                    </div>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- AI สตูดิโอ -->
+                            <v-window-item value="editor">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-6"><v-icon size="64" color="purple" class="mb-2">mdi-auto-fix</v-icon><h3 class="text-h6 font-weight-bold">AI Studio</h3></div>
+                                    <div class="input-spacer"><v-file-input v-model="files" label="Upload Image" variant="outlined" color="purple" show-size accept=".png,.jpg,.jpeg,.webp" bg-color="white" prepend-icon="" prepend-inner-icon="mdi-image-edit" @update:model-value="handlePreview"></v-file-input></div>
+                                    <div v-if="previewUrl" class="preview-box"><img :src="previewUrl" style="max-height:200px;"></div>
+                                    <v-row class="mt-2">
+                                        <v-col cols="12" sm="6"><v-btn block class="action-btn" color="purple-lighten-4" style="color: #6B21A8;" @click="upload('remove-bg')" :loading="loading" :disabled="!files || !files.length"><v-icon start>mdi-eraser</v-icon>Remove BG</v-btn></v-col>
+                                        <v-col cols="12" sm="6"><v-btn block class="action-btn" color="blue-lighten-4" style="color: #1E40AF;" @click="upload('upscale')" :loading="loading" :disabled="!files || !files.length"><v-icon start>mdi-arrow-expand-all</v-icon>Upscale 2x</v-btn></v-col>
+                                    </v-row>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- ย่อขนาดไฟล์ -->
+                            <v-window-item value="compress">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-6"><v-icon size="64" color="amber-darken-3" class="mb-2">mdi-folder-zip</v-icon><h3 class="text-h6 font-weight-bold">Compressor</h3></div>
+                                    <div class="input-spacer"><v-btn-toggle v-model="compressType" mandatory class="d-flex w-100 border rounded-lg" color="amber-darken-3"><v-btn value="image" class="flex-grow-1" @click="resetPreview">Image</v-btn><v-btn value="video" class="flex-grow-1" @click="resetPreview">Video</v-btn></v-btn-toggle></div>
+                                    <div class="input-spacer"><v-file-input v-model="files" :label="compressType=='image'?'Select Image':'Select Video'" variant="outlined" color="amber" show-size bg-color="white" :accept="compressType=='image'?'.png,.jpg,.jpeg,.webp':'.mp4,.mkv,.avi,.mov'" prepend-icon="" prepend-inner-icon="mdi-file" @update:model-value="handlePreview"></v-file-input></div>
+                                    <div v-if="previewUrl" class="preview-box"><img v-if="compressType=='image'" :src="previewUrl" style="max-height:200px;"><video v-else :src="previewUrl" controls style="max-height:200px;"></video></div>
+                                    <v-btn block class="action-btn text-white" color="amber-darken-1" flat size="x-large" @click="upload('compress', {type: compressType})" :loading="loading" :disabled="!files || !files.length">Compress</v-btn>
+                                </v-container>
+                            </v-window-item>
+
+                            <!-- สกัดไฟล์เสียง -->
+                            <v-window-item value="audio">
+                                <v-container style="max-width: 700px;">
+                                    <div class="text-center mb-6"><v-icon size="64" color="indigo" class="mb-2">mdi-waveform</v-icon><h3 class="text-h6 font-weight-bold">Audio Extractor</h3></div>
+                                    <div class="input-spacer"><v-file-input v-model="files" label="Video File (MP4, WebM)" variant="outlined" color="indigo" show-size accept=".mp4,.mkv,.avi,.mov,.webm" bg-color="white" prepend-icon="" prepend-inner-icon="mdi-video" @update:model-value="handlePreview"></v-file-input></div>
+                                    <div v-if="previewUrl" class="preview-box"><video :src="previewUrl" controls style="max-height:200px;"></video></div>
+                                    <v-btn block class="action-btn" color="indigo" flat size="x-large" @click="upload('audio')" :loading="loading" :disabled="!files || !files.length">Extract MP3</v-btn>
+                                </v-container>
+                            </v-window-item>
+
+                        </v-window>
+                        </div>
+                    </v-card>
+                </v-container>
+            </v-main>
+
+            <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top center" rounded="pill" elevation="4">
+                <v-icon start color="white">mdi-bell</v-icon>{{ snackbar.text }}
+            </v-snackbar>
+        </v-app>
+    </div>
+    {% endraw %}
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

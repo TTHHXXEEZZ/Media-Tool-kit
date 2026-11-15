@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment variables (never commit secrets)
+.env
+
+# Flask / SQLite artifacts
+instance/
+*.db
+*.sqlite3
+app.log
+
+# Downloaded / processed media files
+downloads/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
